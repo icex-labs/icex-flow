@@ -16,6 +16,9 @@ export {
   GLOBAL_DIR,
 } from './engine/config.js';
 
+// OpenClaw adapter
+export { handleTask, getChannelMode, shouldUseIcexFlow, routeViaCLI, planViaCLI } from './adapters/index.js';
+
 export type {
   WorkflowDefinition,
   WorkflowStep,
