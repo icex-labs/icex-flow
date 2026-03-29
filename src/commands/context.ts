@@ -1,6 +1,7 @@
 import { join, resolve } from 'node:path';
 import { loadJson, parseFlags } from '../utils.js';
 import { assembleContext, listContextFiles } from '../engine/context.js';
+import { mergeContextManifest } from '../engine/config.js';
 import type { ContextManifest } from '../types.js';
 
 export function cmdContext(args: string[]): void {
@@ -12,7 +13,11 @@ export function cmdContext(args: string[]): void {
   const baseDir = resolve(dir);
   const manifestPath = join(baseDir, '.icex-flow', 'context.manifest.json');
 
-  const manifest = loadJson<ContextManifest>(manifestPath);
+  // Try merged manifest (global + project), fall back to project-only
+  let manifest = mergeContextManifest(baseDir);
+  if (!manifest) {
+    manifest = loadJson<ContextManifest>(manifestPath);
+  }
 
   // Parse vars from --var key=value flags
   const vars: Record<string, string> = {};

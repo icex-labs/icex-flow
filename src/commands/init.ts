@@ -1,80 +1,126 @@
-import { mkdirSync, writeFileSync, existsSync, copyFileSync } from 'node:fs';
-import { join, resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-// Works from both src/ (dev) and dist/src/ (compiled)
-const TEMPLATES_DIR = existsSync(resolve(__dirname, '../../templates'))
-  ? resolve(__dirname, '../../templates')
-  : resolve(__dirname, '../../../templates');
+import { mkdirSync, writeFileSync, existsSync } from 'node:fs';
+import { join, resolve, basename } from 'node:path';
+import { parseFlags } from '../utils.js';
+import { detectProject } from '../engine/detect.js';
+import { generatePreset } from '../presets/index.js';
+import { ensureGlobalDir, registerProject } from '../engine/config.js';
 
 export function cmdInit(args: string[]): void {
-  const targetDir = args[0] ?? '.';
-  const flowDir = join(resolve(targetDir), '.icex-flow');
+  const { positional, flags } = parseFlags(args);
+  const targetDir = positional[0] ?? '.';
+  const absDir = resolve(targetDir);
+  const flowDir = join(absDir, '.icex-flow');
+  const force = flags['force'] === 'true';
 
-  if (existsSync(flowDir)) {
+  if (existsSync(flowDir) && !force) {
     console.error(`Already initialized: ${flowDir}`);
+    console.error('Use --force to re-initialize.');
     process.exit(1);
   }
 
+  // 1. Ensure global config directory exists
+  ensureGlobalDir();
+
+  // 2. Auto-detect project characteristics
+  console.log(`Scanning ${absDir} ...`);
+  const detected = detectProject(absDir);
+
+  console.log('');
+  console.log(`  Project:    ${detected.name}`);
+  console.log(`  Preset:     ${detected.preset}`);
+  console.log(`  Language:   ${detected.language}${detected.languages.length > 1 ? ` (+${detected.languages.slice(1).join(', ')})` : ''}`);
+  if (detected.repo_url) {
+    console.log(`  Repo:       ${detected.repo_url}`);
+  }
+  if (detected.ci) {
+    console.log(`  CI:         ${detected.ci}`);
+  }
+  if (detected.deployment) {
+    console.log(`  Deploy:     ${detected.deployment}`);
+  }
+  if (detected.test_command) {
+    console.log(`  Test cmd:   ${detected.test_command}`);
+  }
+  if (detected.containerized) {
+    console.log(`  Container:  yes`);
+  }
+  if (detected.has_db_migrations) {
+    console.log(`  DB migrate: yes`);
+  }
+  if (detected.is_claude_code) {
+    console.log(`  Claude Code: yes`);
+  }
+  if (detected.detected_features.length > 0) {
+    console.log(`  Features:   ${detected.detected_features.join(', ')}`);
+  }
+  console.log('');
+
+  // 3. Generate config from preset
+  const preset = generatePreset(detected);
+
+  // 4. Create directory structure
   mkdirSync(join(flowDir, 'workflows'), { recursive: true });
+  mkdirSync(join(flowDir, 'context', 'L1-project'), { recursive: true });
+  mkdirSync(join(flowDir, 'context', 'L2-reference'), { recursive: true });
 
-  // Copy template files
-  const files = [
-    ['routes.json', 'routes.json'],
-    ['context.manifest.json', 'context.manifest.json'],
-    ['dev-chain.flow.json', 'workflows/dev-chain.flow.json'],
-  ];
+  // 5. Write routes.json
+  writeFileSync(
+    join(flowDir, 'routes.json'),
+    JSON.stringify(preset.routes, null, 2),
+    'utf-8',
+  );
 
-  for (const [src, dest] of files) {
-    const srcPath = join(TEMPLATES_DIR, src);
-    const destPath = join(flowDir, dest);
-    if (existsSync(srcPath)) {
-      copyFileSync(srcPath, destPath);
-    } else {
-      // Generate minimal defaults inline
-      writeFileSync(destPath, getDefault(src), 'utf-8');
-    }
+  // 6. Write context.manifest.json
+  writeFileSync(
+    join(flowDir, 'context.manifest.json'),
+    JSON.stringify(preset.context_manifest, null, 2),
+    'utf-8',
+  );
+
+  // 7. Write workflow files
+  for (const wf of preset.workflows) {
+    const filename = `${wf.name}.flow.json`;
+    writeFileSync(
+      join(flowDir, 'workflows', filename),
+      JSON.stringify(wf, null, 2),
+      'utf-8',
+    );
   }
 
-  console.log(`✅ Initialized icex-flow at ${flowDir}`);
+  // 8. Write a detection summary for reference
+  writeFileSync(
+    join(flowDir, 'detected.json'),
+    JSON.stringify(detected, null, 2),
+    'utf-8',
+  );
+
+  // 9. Register project in global registry
+  registerProject({
+    path: absDir,
+    name: detected.name,
+    preset: detected.preset,
+    registered_at: new Date().toISOString(),
+    repo_url: detected.repo_url,
+  });
+
+  console.log(`Initialized icex-flow at ${flowDir}`);
   console.log('');
   console.log('Created:');
-  console.log('  .icex-flow/routes.json              — task routing rules');
-  console.log('  .icex-flow/context.manifest.json     — context assembly manifest');
-  console.log('  .icex-flow/workflows/dev-chain.flow.json — dev workflow template');
+  console.log('  .icex-flow/routes.json               — task routing rules');
+  console.log('  .icex-flow/context.manifest.json      — context assembly manifest');
+  console.log('  .icex-flow/detected.json              — auto-detection results');
+  for (const wf of preset.workflows) {
+    console.log(`  .icex-flow/workflows/${wf.name}.flow.json`);
+  }
+  console.log('  .icex-flow/context/L1-project/        — project-specific context');
+  console.log('  .icex-flow/context/L2-reference/       — tool/API references');
+  console.log('');
+  console.log(`Preset: ${detected.preset}`);
+  console.log(`Registered in ~/.icex-flow/projects.json`);
   console.log('');
   console.log('Next steps:');
-  console.log('  1. Edit routes.json to match your agent/channel setup');
-  console.log('  2. Edit context.manifest.json to list your project files');
-  console.log('  3. Customize or add workflows in workflows/');
+  console.log('  1. Review and customize .icex-flow/routes.json');
+  console.log('  2. Add .md files to context/L1-project/ and context/L2-reference/');
+  console.log('  3. Customize workflows in .icex-flow/workflows/');
   console.log('  4. Run: icex-flow validate');
-}
-
-function getDefault(filename: string): string {
-  switch (filename) {
-    case 'routes.json':
-      return JSON.stringify(
-        {
-          version: '1.0.0',
-          default_agent: 'main',
-          default_workflow: 'default',
-          routes: [],
-        },
-        null,
-        2,
-      );
-    case 'context.manifest.json':
-      return JSON.stringify(
-        {
-          version: '1.0.0',
-          global: { always_inject: [], inject_if_exists: [] },
-          workflows: {},
-        },
-        null,
-        2,
-      );
-    default:
-      return '{}';
-  }
 }

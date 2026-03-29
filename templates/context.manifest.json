@@ -3,29 +3,19 @@
   "base_dir": ".",
   "global": {
     "always_inject": [
-      "WORKFLOW_AUTO.md"
+      "context/L0-global/"
     ],
-    "inject_if_exists": [
-      "USER.md",
-      "agents/{{agent_id}}/SOUL.md"
-    ]
+    "inject_if_exists": []
   },
   "workflows": {
     "dev-chain": {
       "always_inject": [
-        "agents/dev/DEV_RULES.md"
+        "context/L1-project/"
       ],
       "inject_if_exists": [
-        "skills/dev-loop/SKILL.md"
+        "context/L2-reference/"
       ],
-      "steps": {
-        "implement": {
-          "inject": ["src/config/settings.py"]
-        },
-        "deploy": {
-          "inject": ["gitops-config/README.md"]
-        }
-      }
+      "steps": {}
     }
   }
 }

@@ -155,3 +155,45 @@ export const DEFAULT_CONFIG: IcexFlowConfig = {
   context_file: '.icex-flow/context.manifest.json',
   base_dir: '.',
 };
+
+// ── Global Config ──────────────────────────────────────────────────
+
+export interface GlobalConfig {
+  version: string;
+  notification_channel?: string;
+  safety_constraints?: string[];
+}
+
+export interface ProjectRegistryEntry {
+  path: string;
+  name: string;
+  preset?: string;
+  registered_at: string;
+  repo_url?: string;
+}
+
+export interface ProjectRegistry {
+  version: string;
+  projects: ProjectRegistryEntry[];
+}
+
+// ── Detection ──────────────────────────────────────────────────────
+
+export type PresetType = 'microservice' | 'monorepo' | 'frontend' | 'library' | 'data-pipeline' | 'generic';
+
+export interface DetectedProject {
+  name: string;
+  repo_url?: string;
+  language: string;
+  languages: string[];
+  ci?: string;
+  deployment?: string;
+  test_command?: string;
+  build_command?: string;
+  has_db_migrations: boolean;
+  containerized: boolean;
+  is_claude_code: boolean;
+  is_monorepo: boolean;
+  preset: PresetType;
+  detected_features: string[];
+}

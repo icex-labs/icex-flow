@@ -3,6 +3,18 @@ export { routeTask } from './engine/router.js';
 export { assembleContext, listContextFiles } from './engine/context.js';
 export { planWorkflow, formatPlan } from './engine/planner.js';
 export { verifyStep } from './engine/verifier.js';
+export { detectProject } from './engine/detect.js';
+export { generatePreset } from './presets/index.js';
+export {
+  ensureGlobalDir,
+  loadRegistry,
+  registerProject,
+  unregisterProject,
+  mergeRoutes,
+  mergeWorkflows,
+  mergeContextManifest,
+  GLOBAL_DIR,
+} from './engine/config.js';
 
 export type {
   WorkflowDefinition,
@@ -18,4 +30,9 @@ export type {
   PlannedStep,
   VerifyResult,
   IcexFlowConfig,
+  GlobalConfig,
+  ProjectRegistry,
+  ProjectRegistryEntry,
+  DetectedProject,
+  PresetType,
 } from './types.js';

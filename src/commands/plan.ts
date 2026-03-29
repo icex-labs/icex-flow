@@ -2,6 +2,7 @@ import { join, resolve } from 'node:path';
 import { readdirSync } from 'node:fs';
 import { loadJson, parseFlags } from '../utils.js';
 import { planWorkflow, formatPlan } from '../engine/planner.js';
+import { mergeWorkflows } from '../engine/config.js';
 import type { WorkflowDefinition } from '../types.js';
 
 export function cmdPlan(args: string[]): void {
@@ -14,13 +15,25 @@ export function cmdPlan(args: string[]): void {
   }
 
   const dir = flags['dir'] ?? '.';
-  const wfDir = join(resolve(dir), '.icex-flow', 'workflows');
+  const absDir = resolve(dir);
+  const wfDir = join(absDir, '.icex-flow', 'workflows');
 
-  // Find workflow file
-  const workflow = findWorkflow(wfDir, workflowName);
+  // Use merged workflows (global + project)
+  const allWorkflows = mergeWorkflows(absDir);
+  let workflow = allWorkflows.find((w) => w.name === workflowName) ?? null;
+
+  // Fall back to direct file search if merged didn't find it
   if (!workflow) {
+    workflow = findWorkflow(wfDir, workflowName);
+  }
+
+  if (!workflow) {
+    const names = allWorkflows.map((w) => w.name);
+    if (names.length === 0) {
+      names.push(...listWorkflowNames(wfDir));
+    }
     console.error(`Workflow not found: ${workflowName}`);
-    console.error(`Available: ${listWorkflowNames(wfDir).join(', ')}`);
+    console.error(`Available: ${names.join(', ') || '(none)'}`);
     process.exit(1);
   }
 
@@ -42,7 +55,7 @@ export function cmdPlan(args: string[]): void {
     }
   }
 
-  const plan = planWorkflow(workflow!, input);
+  const plan = planWorkflow(workflow, input);
 
   if (flags['json'] === 'true') {
     console.log(JSON.stringify(plan, null, 2));

@@ -1,6 +1,7 @@
 import { join, resolve } from 'node:path';
 import { loadJson, parseFlags } from '../utils.js';
 import { routeTask } from '../engine/router.js';
+import { mergeRoutes } from '../engine/config.js';
 import type { RoutesConfig } from '../types.js';
 
 export function cmdRoute(args: string[]): void {
@@ -13,9 +14,15 @@ export function cmdRoute(args: string[]): void {
   }
 
   const dir = flags['dir'] ?? '.';
-  const routesPath = join(resolve(dir), '.icex-flow', 'routes.json');
+  const absDir = resolve(dir);
 
-  const config = loadJson<RoutesConfig>(routesPath);
+  // Try merged config (global + project), fall back to project-only
+  let config = mergeRoutes(absDir);
+  if (!config) {
+    const routesPath = join(absDir, '.icex-flow', 'routes.json');
+    config = loadJson<RoutesConfig>(routesPath);
+  }
+
   const result = routeTask(config, {
     description,
     labels: flags['labels']?.split(','),
