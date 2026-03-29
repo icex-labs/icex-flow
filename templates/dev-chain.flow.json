@@ -1,0 +1,112 @@
+{
+  "name": "dev-chain",
+  "version": "1.0.0",
+  "description": "Issue → Branch → Implement → Test → PR → Merge → Deploy → Notify",
+  "triggers": {
+    "labels": ["auto-ok", "bug", "feature", "enhancement"],
+    "keywords": ["implement", "fix", "add", "refactor", "build"]
+  },
+  "context": {
+    "always": ["WORKFLOW_AUTO.md", "agents/dev/DEV_RULES.md"],
+    "per_step": {
+      "implement": ["src/", "tests/"],
+      "deploy": ["gitops-config/"]
+    }
+  },
+  "inputs": {
+    "issue_number": {
+      "type": "string",
+      "required": true,
+      "description": "GitHub issue number"
+    },
+    "branch_name": {
+      "type": "string",
+      "required": true,
+      "description": "Feature branch name (e.g. fix/login-bug)"
+    },
+    "repo": {
+      "type": "string",
+      "default": "netralis-inc/netralis-quant",
+      "description": "GitHub repo"
+    },
+    "pr_title": {
+      "type": "string",
+      "required": true,
+      "description": "Pull request title"
+    }
+  },
+  "steps": [
+    {
+      "id": "lock-issue",
+      "name": "Lock Issue",
+      "action": "shell",
+      "command": "gh issue edit {{issue_number}} --add-label in-progress --repo {{repo}}",
+      "verify": {
+        "command": "gh issue view {{issue_number}} --repo {{repo}} --json labels -q '.labels[].name'",
+        "expect": "in-progress"
+      }
+    },
+    {
+      "id": "create-branch",
+      "name": "Create Feature Branch",
+      "action": "shell",
+      "command": "git checkout -b {{branch_name}} && git push -u origin {{branch_name}}",
+      "verify": {
+        "command": "git branch --show-current",
+        "expect": "{{branch_name}}"
+      }
+    },
+    {
+      "id": "implement",
+      "name": "Implement Changes",
+      "action": "agent",
+      "agent": "dev-coder",
+      "timeout": 600,
+      "input": "Implement the changes described in issue #{{issue_number}}. Branch: {{branch_name}}. Run tests before committing.",
+      "verify": {
+        "command": "python -m pytest tests/ -v --tb=short",
+        "expect_exit": 0
+      }
+    },
+    {
+      "id": "create-pr",
+      "name": "Create Pull Request",
+      "action": "shell",
+      "command": "gh pr create --base main --head {{branch_name}} --title '{{pr_title}}' --body 'Closes #{{issue_number}}' --repo {{repo}}",
+      "capture": "pr_url"
+    },
+    {
+      "id": "wait-ci",
+      "name": "Wait for CI",
+      "action": "gate",
+      "verify": {
+        "command": "gh pr checks {{branch_name}} --repo {{repo}} --json state -q '.[].state' | sort -u | grep -v SUCCESS | wc -l | tr -d ' '",
+        "expect": "0",
+        "retry": 12,
+        "retry_delay": 30
+      }
+    },
+    {
+      "id": "merge-pr",
+      "name": "Merge PR",
+      "action": "shell",
+      "command": "gh pr merge {{branch_name}} --squash --delete-branch --repo {{repo}}",
+      "verify": {
+        "command": "gh pr view {{branch_name}} --repo {{repo}} --json state -q '.state'",
+        "expect": "MERGED"
+      }
+    },
+    {
+      "id": "notify",
+      "name": "Notify Completion",
+      "action": "notify",
+      "channels": ["telegram:notify"],
+      "message": "✅ dev-chain complete: {{pr_title}} (issue #{{issue_number}}) merged"
+    }
+  ],
+  "on_failure": {
+    "action": "notify",
+    "channels": ["telegram:notify"],
+    "message": "❌ dev-chain failed at step '{{failed_step}}' for issue #{{issue_number}}: {{error}}"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://icex.dev/schemas/routes.schema.json",
+  "title": "icex-flow Routes Configuration",
+  "type": "object",
+  "required": ["version", "default_agent", "routes"],
+  "properties": {
+    "version": { "type": "string" },
+    "default_agent": { "type": "string" },
+    "default_workflow": { "type": "string" },
+    "routes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["match", "workflow", "agent"],
+        "properties": {
+          "match": {
+            "type": "object",
+            "properties": {
+              "labels": { "type": "array", "items": { "type": "string" } },
+              "keywords": { "type": "array", "items": { "type": "string" } },
+              "channel": { "type": "string" },
+              "sender": { "type": "string" }
+            }
+          },
+          "workflow": { "type": "string" },
+          "agent": { "type": "string" },
+          "priority": { "type": "integer" }
+        }
+      }
+    }
+  }
+}

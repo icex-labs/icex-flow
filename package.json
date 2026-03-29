@@ -1,0 +1,48 @@
+{
+  "name": "icex-flow",
+  "version": "0.1.0",
+  "description": "Deterministic agent workflow orchestration — eliminate randomness in AI agent pipelines",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "icex-flow": "bin/icex-flow.mjs"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "node --test dist/tests/",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "files": [
+    "dist/",
+    "bin/",
+    "schemas/",
+    "templates/",
+    "SKILL.md",
+    "README.md"
+  ],
+  "keywords": [
+    "ai",
+    "agent",
+    "workflow",
+    "orchestration",
+    "deterministic",
+    "openclaw",
+    "claude-code",
+    "pipeline"
+  ],
+  "author": "icex-labs",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/icex-labs/icex-flow.git"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "typescript": "^6.0.2"
+  }
+}

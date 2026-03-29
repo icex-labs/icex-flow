@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://icex.dev/schemas/context.schema.json",
+  "title": "icex-flow Context Manifest",
+  "type": "object",
+  "required": ["version", "global"],
+  "properties": {
+    "version": { "type": "string" },
+    "base_dir": { "type": "string" },
+    "global": {
+      "type": "object",
+      "required": ["always_inject"],
+      "properties": {
+        "always_inject": { "type": "array", "items": { "type": "string" } },
+        "inject_if_exists": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "workflows": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "always_inject": { "type": "array", "items": { "type": "string" } },
+          "inject_if_exists": { "type": "array", "items": { "type": "string" } },
+          "steps": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "inject": { "type": "array", "items": { "type": "string" } }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

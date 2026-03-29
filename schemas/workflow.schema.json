@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://icex.dev/schemas/workflow.schema.json",
+  "title": "icex-flow Workflow Definition",
+  "type": "object",
+  "required": ["name", "version", "steps"],
+  "properties": {
+    "name": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+    "version": { "type": "string" },
+    "description": { "type": "string" },
+    "triggers": {
+      "type": "object",
+      "properties": {
+        "labels": { "type": "array", "items": { "type": "string" } },
+        "keywords": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "context": {
+      "type": "object",
+      "properties": {
+        "always": { "type": "array", "items": { "type": "string" } },
+        "per_step": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array", "items": { "type": "string" }
+          }
+        }
+      }
+    },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "type": { "enum": ["string", "number", "boolean"] },
+          "required": { "type": "boolean" },
+          "default": {},
+          "description": { "type": "string" }
+        }
+      }
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "action"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "action": { "enum": ["shell", "agent", "notify", "gate"] },
+          "command": { "type": "string" },
+          "agent": { "type": "string" },
+          "timeout": { "type": "number", "minimum": 1 },
+          "input": { "type": "string" },
+          "channels": { "type": "array", "items": { "type": "string" } },
+          "message": { "type": "string" },
+          "capture": { "type": "string" },
+          "condition": { "type": "string" },
+          "verify": {
+            "type": "object",
+            "required": ["command"],
+            "properties": {
+              "command": { "type": "string" },
+              "expect": { "type": "string" },
+              "expect_exit": { "type": "integer" },
+              "retry": { "type": "integer", "minimum": 0 },
+              "retry_delay": { "type": "integer", "minimum": 1 }
+            }
+          }
+        }
+      }
+    },
+    "on_failure": {
+      "type": "object",
+      "properties": {
+        "action": { "enum": ["notify", "rollback"] },
+        "channels": { "type": "array", "items": { "type": "string" } },
+        "message": { "type": "string" },
+        "rollback_steps": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "version": "1.0.0",
+  "base_dir": ".",
+  "global": {
+    "always_inject": [
+      "WORKFLOW_AUTO.md"
+    ],
+    "inject_if_exists": [
+      "USER.md",
+      "agents/{{agent_id}}/SOUL.md"
+    ]
+  },
+  "workflows": {
+    "dev-chain": {
+      "always_inject": [
+        "agents/dev/DEV_RULES.md"
+      ],
+      "inject_if_exists": [
+        "skills/dev-loop/SKILL.md"
+      ],
+      "steps": {
+        "implement": {
+          "inject": ["src/config/settings.py"]
+        },
+        "deploy": {
+          "inject": ["gitops-config/README.md"]
+        }
+      }
+    }
+  }
+}

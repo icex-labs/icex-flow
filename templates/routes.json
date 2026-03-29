@@ -1,0 +1,37 @@
+{
+  "version": "1.0.0",
+  "default_agent": "main",
+  "default_workflow": "default",
+  "routes": [
+    {
+      "match": { "labels": ["auto-ok"] },
+      "workflow": "dev-chain",
+      "agent": "dev",
+      "priority": 10
+    },
+    {
+      "match": { "keywords": ["implement", "fix", "bug", "feature", "refactor", "add"] },
+      "workflow": "dev-chain",
+      "agent": "dev",
+      "priority": 5
+    },
+    {
+      "match": { "keywords": ["deploy", "rollout", "k3d", "u9", "cluster", "helm", "argocd"] },
+      "workflow": "deploy",
+      "agent": "ops",
+      "priority": 5
+    },
+    {
+      "match": { "keywords": ["architecture", "design", "rfc", "adr", "review", "strategy"] },
+      "workflow": "review",
+      "agent": "arch",
+      "priority": 5
+    },
+    {
+      "match": { "keywords": ["test", "validate", "qa", "regression", "lint", "coverage"] },
+      "workflow": "test-suite",
+      "agent": "qa",
+      "priority": 5
+    }
+  ]
+}
