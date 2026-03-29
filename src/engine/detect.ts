@@ -153,20 +153,82 @@ export function detectProject(dir: string): DetectedProject {
     testCommand = testCommand ?? 'pytest';
   }
 
-  // --- DB migrations ---
-  if (
+  // --- Deep scan: services/*/ or packages/*/ subdirectories ---
+  const servicesDirs = ['services', 'packages', 'apps', 'modules'];
+  let serviceCount = 0;
+  for (const svcDir of servicesDirs) {
+    const svcPath = join(dir, svcDir);
+    if (existsSync(svcPath) && statSync(svcPath).isDirectory()) {
+      const subs = readdirSync(svcPath).filter(f => {
+        try { return statSync(join(svcPath, f)).isDirectory(); } catch { return false; }
+      });
+      serviceCount += subs.length;
+      for (const sub of subs) {
+        const subPath = join(svcPath, sub);
+        // Detect languages in subdirectories
+        if (!languages.includes('python') && (existsSync(join(subPath, 'pyproject.toml')) || existsSync(join(subPath, 'requirements.txt')) || existsSync(join(subPath, 'setup.py')))) {
+          languages.push('python');
+          features.push('lang:python');
+          testCommand = testCommand ?? 'pytest';
+        }
+        if (!languages.includes('node') && existsSync(join(subPath, 'package.json'))) {
+          languages.push('node');
+          features.push('lang:node');
+        }
+        if (!languages.includes('go') && existsSync(join(subPath, 'go.mod'))) {
+          languages.push('go');
+          features.push('lang:go');
+        }
+        if (!languages.includes('java') && (existsSync(join(subPath, 'pom.xml')) || existsSync(join(subPath, 'build.gradle')))) {
+          languages.push('java');
+          features.push('lang:java');
+        }
+        // Detect containerization in subdirectories
+        if (!containerized && existsSync(join(subPath, 'Dockerfile'))) {
+          containerized = true;
+          features.push('container:docker');
+        }
+        // Detect DB migrations in subdirectories
+        if (!hasMigrations && (existsSync(join(subPath, 'liquibase')) || existsSync(join(subPath, 'migrations')) || existsSync(join(subPath, 'alembic')))) {
+          hasMigrations = true;
+          features.push('db:migrations');
+        }
+      }
+      if (subs.length >= 2) {
+        isMonorepo = true;
+        if (!features.includes('monorepo')) features.push('monorepo');
+        features.push(`${svcDir}:${subs.length}`);
+      }
+    }
+  }
+
+  // --- Helm charts deep scan ---
+  const chartsDir = join(dir, 'charts');
+  if (!deployment && existsSync(chartsDir) && statSync(chartsDir).isDirectory()) {
+    const chartSubs = readdirSync(chartsDir).filter(f => {
+      try { return statSync(join(chartsDir, f)).isDirectory(); } catch { return false; }
+    });
+    if (chartSubs.length > 0) {
+      deployment = 'helm';
+      features.push('deploy:helm');
+      features.push(`charts:${chartSubs.length}`);
+    }
+  }
+
+  // --- DB migrations (root level) ---
+  if (!hasMigrations && (
     existsSync(join(dir, 'liquibase')) ||
     existsSync(join(dir, 'migrations')) ||
     existsSync(join(dir, 'db', 'migrations')) ||
     existsSync(join(dir, 'alembic')) ||
     existsSync(join(dir, 'prisma'))
-  ) {
+  )) {
     hasMigrations = true;
     features.push('db:migrations');
   }
 
-  // --- Containerized ---
-  if (existsSync(join(dir, 'Dockerfile')) || existsSync(join(dir, 'docker-compose.yml')) || existsSync(join(dir, 'docker-compose.yaml'))) {
+  // --- Containerized (root level) ---
+  if (!containerized && (existsSync(join(dir, 'Dockerfile')) || existsSync(join(dir, 'docker-compose.yml')) || existsSync(join(dir, 'docker-compose.yaml')))) {
     containerized = true;
     features.push('container:docker');
   }
