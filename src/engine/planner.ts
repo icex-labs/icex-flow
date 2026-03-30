@@ -83,12 +83,18 @@ export function formatPlan(plan: ExecutionPlan): string {
     lines.push('');
   }
 
+  const offset = plan.fromStepOffset ?? 0;
+  if (offset > 0) {
+    lines.push(`> Resuming from step ${offset + 1} (skipping steps 1–${offset})`);
+    lines.push('');
+  }
+
   lines.push('## Steps');
   lines.push('');
 
   for (let i = 0; i < plan.steps.length; i++) {
     const step = plan.steps[i];
-    const num = i + 1;
+    const num = offset + i + 1;
 
     if (step.status === 'skipped') {
       lines.push(`### Step ${num}: ${step.name} [SKIPPED]`);

@@ -116,6 +116,8 @@ export interface ExecutionPlan {
   steps: PlannedStep[];
   context_files: string[];
   variables: Record<string, string>;
+  /** When --from-step is used, the 0-based offset of the first included step in the original workflow */
+  fromStepOffset?: number;
 }
 
 export interface PlannedStep {

@@ -3,14 +3,14 @@ import { readdirSync } from 'node:fs';
 import { loadJson, parseFlags } from '../utils.js';
 import { planWorkflow, formatPlan } from '../engine/planner.js';
 import { mergeWorkflows } from '../engine/config.js';
-import type { WorkflowDefinition } from '../types.js';
+import type { WorkflowDefinition, ExecutionPlan } from '../types.js';
 
 export function cmdPlan(args: string[]): void {
   const { positional, flags } = parseFlags(args);
   const workflowName = positional[0];
 
   if (!workflowName) {
-    console.error('Usage: icex-flow plan <workflow-name> [--input \'{"key":"value"}\'] [--dir .]');
+    console.error('Usage: icex-flow plan <workflow-name> [--from-step <number|id>] [--input \'{"key":"value"}\'] [--dir .]');
     process.exit(1);
   }
 
@@ -50,12 +50,25 @@ export function cmdPlan(args: string[]): void {
 
   // Also accept individual --key value flags as input
   for (const [k, v] of Object.entries(flags)) {
-    if (!['dir', 'input', 'json'].includes(k)) {
+    if (!['dir', 'input', 'json', 'from-step'].includes(k)) {
       input[k] = v;
     }
   }
 
   const plan = planWorkflow(workflow, input);
+
+  // Apply --from-step filter if provided
+  const fromStep = flags['from-step'];
+  if (fromStep) {
+    const stepIndex = resolveFromStep(plan, fromStep, workflow);
+    if (stepIndex === -1) {
+      console.error(`Step not found: ${fromStep}`);
+      console.error(`Available steps: ${plan.steps.map((s, i) => `${i + 1}:${s.id}`).join(', ')}`);
+      process.exit(1);
+    }
+    plan.steps = plan.steps.slice(stepIndex);
+    plan.fromStepOffset = stepIndex;
+  }
 
   if (flags['json'] === 'true') {
     console.log(JSON.stringify(plan, null, 2));
@@ -78,6 +91,24 @@ function findWorkflow(
     // dir doesn't exist
   }
   return null;
+}
+
+function resolveFromStep(
+  plan: ExecutionPlan,
+  fromStep: string,
+  workflow: WorkflowDefinition,
+): number {
+  // Try as a 1-based step number first
+  const num = parseInt(fromStep, 10);
+  if (!isNaN(num) && num >= 1 && num <= plan.steps.length) {
+    return num - 1; // convert to 0-based index
+  }
+
+  // Try as a step ID
+  const idx = plan.steps.findIndex((s) => s.id === fromStep);
+  if (idx !== -1) return idx;
+
+  return -1;
 }
 
 function listWorkflowNames(wfDir: string): string[] {

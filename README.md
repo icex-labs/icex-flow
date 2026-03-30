@@ -110,6 +110,14 @@ icex-flow context dev-chain --step implement
 icex-flow plan dev-chain --input '{"issue_number":"42","branch_name":"fix/login","pr_title":"Fix login"}'
 # → Step-by-step plan with resolved commands and verification checks
 
+# Resume a plan from a specific step (skip earlier steps)
+icex-flow plan dev-chain --from-step 6 --input '{"issue_number":"42","branch_name":"fix/login"}'
+# → Only steps 6 onwards (steps 1-5 skipped)
+
+# Resume by step ID instead of number
+icex-flow plan dev-chain --from-step create-pr --input '{"issue_number":"42","branch_name":"fix/login"}'
+# → Steps from create-pr onwards
+
 # Verify a step completed successfully
 icex-flow verify --command "gh pr view 42 --json state -q '.state'" --expect "MERGED"
 # → ✅ PASS or ❌ FAIL
@@ -122,7 +130,7 @@ icex-flow verify --command "gh pr view 42 --json state -q '.state'" --expect "ME
 | `icex-flow init [--path <dir>]` | Auto-detect project + scaffold `.icex-flow/` |
 | `icex-flow validate [dir]` | Validate all JSON definitions |
 | `icex-flow route "<task>"` | Route task → agent + workflow |
-| `icex-flow plan <workflow>` | Generate deterministic execution plan |
+| `icex-flow plan <workflow> [--from-step <n\|id>]` | Generate deterministic execution plan (optionally resume from step) |
 | `icex-flow context [workflow]` | Assemble context from manifest |
 | `icex-flow verify --command "..."` | Run step verification |
 | `icex-flow list` | List workflows and routes |
@@ -270,6 +278,20 @@ A workflow defines a deterministic sequence of steps:
 | `agent` | Spawn a subagent | `agent`, `input`, `timeout` |
 | `notify` | Send notifications | `channels`, `message` |
 | `gate` | Wait for a condition with retries | `verify` (with `retry` + `retry_delay`) |
+
+### Resuming from a Step
+
+When a workflow fails partway through, you can resume from a specific step instead of re-running from the beginning:
+
+```bash
+# By step number (1-based)
+icex-flow plan dev-chain --from-step 4 --input '{"issue_number":"42","branch_name":"fix/login"}'
+
+# By step ID
+icex-flow plan dev-chain --from-step create-pr --input '{"issue_number":"42","branch_name":"fix/login"}'
+```
+
+Both forms produce a plan that only includes the requested step and all subsequent steps. Step numbers in the output preserve their original position in the workflow for clarity.
 
 ### Variables
 

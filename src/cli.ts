@@ -47,6 +47,7 @@ Commands:
   route "<description>" [--labels] Route a task to agent + workflow
   context [workflow] [--step]     Assemble context from manifest
   plan <workflow> [--input '{}']  Generate deterministic execution plan
+                                 [--from-step <n|id>]  Resume from a specific step
   list [--dir .]                  List workflows and routes (merged)
   verify --command "<cmd>"        Run step verification
   projects [list|add|remove]      Manage registered projects
@@ -70,6 +71,7 @@ Examples:
   icex-flow init --force
   icex-flow route "fix login bug" --labels bug
   icex-flow plan dev-chain --input '{"issue_number":"42","branch_name":"fix/login"}'
+  icex-flow plan dev-chain --from-step 4 --input '{"issue_number":"42","branch_name":"fix/login"}'
   icex-flow context dev-chain --step implement
   icex-flow verify --command "pytest tests/ -v" --expect-exit 0
   icex-flow projects
