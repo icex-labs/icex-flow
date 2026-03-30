@@ -56,6 +56,16 @@ cd my-project
 icex-flow init
 ```
 
+You can also scan a remote directory without `cd`-ing into it:
+
+```bash
+# Scan a remote project, but write .icex-flow/ config to the current directory
+icex-flow init --path /path/to/remote/project
+
+# Same for generate — scan remotely, write locally
+icex-flow generate --path /path/to/remote/project
+```
+
 `init` auto-detects your project:
 
 - **Language** — Python, Node.js, Go, Java, Rust, etc.
@@ -109,15 +119,16 @@ icex-flow verify --command "gh pr view 42 --json state -q '.state'" --expect "ME
 
 | Command | Description |
 |---------|-------------|
-| `icex-flow init [dir]` | Auto-detect project + scaffold `.icex-flow/` |
+| `icex-flow init [--path <dir>]` | Auto-detect project + scaffold `.icex-flow/` |
 | `icex-flow validate [dir]` | Validate all JSON definitions |
 | `icex-flow route "<task>"` | Route task → agent + workflow |
 | `icex-flow plan <workflow>` | Generate deterministic execution plan |
 | `icex-flow context [workflow]` | Assemble context from manifest |
 | `icex-flow verify --command "..."` | Run step verification |
 | `icex-flow list` | List workflows and routes |
-| `icex-flow generate [dir]` | Auto-generate PROJECT.md from detection + knowledge |
+| `icex-flow generate [--path <dir>]` | Auto-generate PROJECT.md from detection + knowledge |
 | `icex-flow learn "<fact>"` | Add persistent knowledge |
+| `icex-flow learn --project <name>` | Associate knowledge with a registered project |
 | `icex-flow learn --list` | List all learned knowledge |
 | `icex-flow learn --remove <id>` | Remove a knowledge entry |
 | `icex-flow projects [list\|add\|remove]` | Manage project registry |

@@ -220,23 +220,32 @@ function generateProjectMd(
 
 // ── Command ──────────────────────────────────────────────────────────
 
-export function runGenerate(dir: string): void {
+/**
+ * @param dir - The directory where .icex-flow/ config lives (output target)
+ * @param scanPath - Optional remote directory to scan for project detection.
+ *                   When provided, detection/discovery reads from scanPath
+ *                   but output is written to dir's .icex-flow/.
+ */
+export function runGenerate(dir: string, scanPath?: string): void {
   const absDir = resolve(dir);
   const flowDir = join(absDir, '.icex-flow');
 
+  // scanDir is where we read project files; absDir is where we write config
+  const scanDir = scanPath ? resolve(scanPath) : absDir;
+
   // 1. Detect project
-  console.log('Detecting project...');
-  const detected = detectProject(absDir);
+  console.log(`Detecting project${scanPath ? ` from ${scanDir}` : ''}...`);
+  const detected = detectProject(scanDir);
 
   // 2. Discover environments
   console.log('Discovering environments...');
-  const envResult = discoverEnvironments(absDir);
+  const envResult = discoverEnvironments(scanDir);
 
   // 3. Extract architecture
   console.log('Extracting architecture...');
-  const archResult = extractArchitecture(absDir);
+  const archResult = extractArchitecture(scanDir);
 
-  // 4. Load knowledge
+  // 4. Load knowledge (from config dir, not scan dir)
   const knowledge = loadKnowledge(absDir);
 
   // 5. Generate PROJECT.md
@@ -270,11 +279,12 @@ export function runGenerate(dir: string): void {
 export function cmdGenerate(args: string[]): void {
   const { flags } = parseFlags(args);
   const dir = flags['dir'] ?? '.';
+  const scanPath = flags['path'] ?? undefined;
 
   if (!existsSync(join(resolve(dir), '.icex-flow'))) {
     console.error('Not an icex-flow project. Run "icex-flow init" first.');
     process.exit(1);
   }
 
-  runGenerate(dir);
+  runGenerate(dir, scanPath);
 }

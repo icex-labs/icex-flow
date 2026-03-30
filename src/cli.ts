@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { cmdInit } from './commands/init.js';
 import { cmdValidate } from './commands/validate.js';
 import { cmdRoute } from './commands/route.js';
@@ -9,7 +12,24 @@ import { cmdProjects } from './commands/projects.js';
 import { cmdGenerate } from './commands/generate.js';
 import { cmdLearn } from './commands/learn.js';
 
-const VERSION = '0.2.0';
+function getVersion(): string {
+  try {
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = dirname(__filename);
+    // Walk up from dist/src/ or src/ to find package.json
+    let dir = __dirname;
+    for (let i = 0; i < 5; i++) {
+      try {
+        const pkg = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf-8'));
+        if (pkg.name === '@icex-labs/icex-flow') return pkg.version;
+      } catch { /* continue */ }
+      dir = dirname(dir);
+    }
+  } catch { /* fallback */ }
+  return '0.0.0';
+}
+
+const VERSION = getVersion();
 
 const HELP = `
 icex-flow v${VERSION} — Deterministic agent workflow orchestration
@@ -17,11 +37,12 @@ icex-flow v${VERSION} — Deterministic agent workflow orchestration
 Usage: icex-flow <command> [options]
 
 Commands:
-  init [dir] [--force]            Initialize .icex-flow/ with smart auto-detection
-  generate [--dir .]              Auto-generate PROJECT.md from scanned project
+  init [--path <dir>] [--force]   Initialize .icex-flow/ with smart auto-detection
+  generate [--path <dir>]         Auto-generate PROJECT.md from scanned project
   learn "<knowledge>"             Store project knowledge (env, safety, arch)
   learn --list                    List all stored knowledge
   learn --remove <id>             Remove a knowledge entry
+  learn --project <name>          Associate knowledge with a specific project
   validate [dir] [--global]       Validate all workflow definitions
   route "<description>" [--labels] Route a task to agent + workflow
   context [workflow] [--step]     Assemble context from manifest
@@ -31,6 +52,7 @@ Commands:
   projects [list|add|remove]      Manage registered projects
 
 Options:
+  --path <dir>     Scan a remote directory (init/generate: detect from there, write config locally)
   --dir <path>     Working directory (default: .)
   --json           Output as JSON
   --help, -h       Show help
@@ -44,6 +66,7 @@ Global Config: ~/.icex-flow/
 
 Examples:
   icex-flow init
+  icex-flow init --path /path/to/remote/project
   icex-flow init --force
   icex-flow route "fix login bug" --labels bug
   icex-flow plan dev-chain --input '{"issue_number":"42","branch_name":"fix/login"}'

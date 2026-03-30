@@ -8,10 +8,15 @@ import { runGenerate } from './generate.js';
 
 export function cmdInit(args: string[]): void {
   const { positional, flags } = parseFlags(args);
+  // --path specifies a remote scan directory; config is written to cwd (or positional dir)
+  const scanDir = flags['path'] ? resolve(flags['path']) : null;
   const targetDir = positional[0] ?? '.';
   const absDir = resolve(targetDir);
   const flowDir = join(absDir, '.icex-flow');
   const force = flags['force'] === 'true';
+
+  // The directory we scan for project detection (remote or local)
+  const projectDir = scanDir ?? absDir;
 
   if (existsSync(flowDir) && !force) {
     console.error(`Already initialized: ${flowDir}`);
@@ -23,8 +28,13 @@ export function cmdInit(args: string[]): void {
   ensureGlobalDir();
 
   // 2. Auto-detect project characteristics
-  console.log(`Scanning ${absDir} ...`);
-  const detected = detectProject(absDir);
+  if (scanDir) {
+    console.log(`Scanning remote path: ${projectDir}`);
+    console.log(`Config will be written to: ${flowDir}`);
+  } else {
+    console.log(`Scanning ${absDir} ...`);
+  }
+  const detected = detectProject(projectDir);
 
   console.log('');
   console.log(`  Project:    ${detected.name}`);
@@ -119,9 +129,9 @@ export function cmdInit(args: string[]): void {
   console.log(`Preset: ${detected.preset}`);
   console.log(`Registered in ~/.icex-flow/projects.json`);
   console.log('');
-  // 10. Auto-generate PROJECT.md
+  // 10. Auto-generate PROJECT.md (scan remote dir if provided, write to local config)
   console.log('');
-  runGenerate(absDir);
+  runGenerate(absDir, scanDir ?? undefined);
 
   console.log('');
   console.log('Next steps:');

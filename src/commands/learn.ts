@@ -74,10 +74,41 @@ function categorize(text: string): KnowledgeCategory {
 export function cmdLearn(args: string[]): void {
   const { positional, flags } = parseFlags(args);
   const dir = resolve(flags['dir'] ?? '.');
+  const projectName = flags['project'] ?? undefined;
+
+  // Resolve target directory: if --project is given, look it up in the registry
+  let targetDir = dir;
+  if (projectName) {
+    const registryPath = join(
+      process.env['HOME'] ?? process.env['USERPROFILE'] ?? '~',
+      '.icex-flow',
+      'projects.json',
+    );
+    if (existsSync(registryPath)) {
+      try {
+        const registry = JSON.parse(readFileSync(registryPath, 'utf-8'));
+        const projects = registry.projects ?? [];
+        const match = projects.find((p: { name: string; path: string }) => p.name === projectName);
+        if (match) {
+          targetDir = match.path;
+        } else {
+          console.error(`Project not found in registry: ${projectName}`);
+          console.error('Use "icex-flow projects list" to see registered projects.');
+          process.exit(1);
+        }
+      } catch {
+        console.error('Failed to read project registry.');
+        process.exit(1);
+      }
+    } else {
+      console.error('No project registry found. Run "icex-flow init" in a project first.');
+      process.exit(1);
+    }
+  }
 
   // --list: show all knowledge
   if (flags['list'] === 'true') {
-    const store = loadKnowledge(dir);
+    const store = loadKnowledge(targetDir);
     if (store.entries.length === 0) {
       console.log('No knowledge stored yet.');
       console.log('');
@@ -85,7 +116,7 @@ export function cmdLearn(args: string[]): void {
       return;
     }
 
-    console.log(`Knowledge entries (${store.entries.length}):`);
+    console.log(`Knowledge entries (${store.entries.length})${projectName ? ` for project "${projectName}"` : ''}:`);
     console.log('');
     for (const entry of store.entries) {
       console.log(`  [${entry.category}] ${entry.text}`);
@@ -97,7 +128,7 @@ export function cmdLearn(args: string[]): void {
 
   // --remove <id>: remove a knowledge entry
   if (flags['remove']) {
-    const store = loadKnowledge(dir);
+    const store = loadKnowledge(targetDir);
     const id = flags['remove'];
     const before = store.entries.length;
     store.entries = store.entries.filter(e => e.id !== id);
@@ -105,7 +136,7 @@ export function cmdLearn(args: string[]): void {
       console.error(`Knowledge entry not found: ${id}`);
       process.exit(1);
     }
-    saveKnowledge(dir, store);
+    saveKnowledge(targetDir, store);
     console.log(`Removed knowledge entry: ${id}`);
     return;
   }
@@ -116,12 +147,13 @@ export function cmdLearn(args: string[]): void {
     console.error('Usage: icex-flow learn "<knowledge>"');
     console.error('       icex-flow learn --list');
     console.error('       icex-flow learn --remove <id>');
+    console.error('       icex-flow learn --project <name> "<knowledge>"');
     process.exit(1);
   }
 
   // Check that .icex-flow exists
-  if (!existsSync(join(dir, '.icex-flow'))) {
-    console.error('Not an icex-flow project. Run "icex-flow init" first.');
+  if (!existsSync(join(targetDir, '.icex-flow'))) {
+    console.error(`Not an icex-flow project${projectName ? ` (${targetDir})` : ''}. Run "icex-flow init" first.`);
     process.exit(1);
   }
 
@@ -133,10 +165,10 @@ export function cmdLearn(args: string[]): void {
     created_at: new Date().toISOString(),
   };
 
-  const store = loadKnowledge(dir);
+  const store = loadKnowledge(targetDir);
   store.entries.push(entry);
-  saveKnowledge(dir, store);
+  saveKnowledge(targetDir, store);
 
-  console.log(`Learned [${category}]: ${text}`);
+  console.log(`Learned [${category}]: ${text}${projectName ? ` (project: ${projectName})` : ''}`);
   console.log(`  id: ${entry.id}`);
 }

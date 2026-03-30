@@ -1,6 +1,6 @@
 {
   "name": "@icex-labs/icex-flow",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "Deterministic agent workflow orchestration — eliminate randomness in AI agent pipelines",
   "type": "module",
   "main": "dist/index.js",
