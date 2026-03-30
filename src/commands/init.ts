@@ -1,5 +1,5 @@
 import { mkdirSync, writeFileSync, existsSync } from 'node:fs';
-import { join, resolve, basename } from 'node:path';
+import { join, resolve } from 'node:path';
 import { parseFlags } from '../utils.js';
 import { detectProject } from '../engine/detect.js';
 import { generatePreset } from '../presets/index.js';
@@ -14,13 +14,20 @@ export function cmdInit(args: string[]): void {
   const absDir = resolve(targetDir);
   const flowDir = join(absDir, '.icex-flow');
   const force = flags['force'] === 'true';
+  const reset = flags['reset'] === 'true';
 
   // The directory we scan for project detection (remote or local)
   const projectDir = scanDir ?? absDir;
 
-  if (existsSync(flowDir) && !force) {
-    console.error(`Already initialized: ${flowDir}`);
-    console.error('Use --force to re-initialize.');
+  const alreadyExists = existsSync(flowDir);
+
+  // If config exists and neither --force nor --reset, tell the user and exit
+  if (alreadyExists && !force && !reset) {
+    console.log(`Config already exists: ${flowDir}`);
+    console.log('');
+    console.log('Options:');
+    console.log('  icex-flow init --force   Re-scan the project (updates detected.json only, preserves customizations)');
+    console.log('  icex-flow init --reset   Start fresh (overwrites all config files with templates)');
     process.exit(1);
   }
 
@@ -66,29 +73,63 @@ export function cmdInit(args: string[]): void {
   }
   console.log('');
 
-  // 3. Generate config from preset
+  // --force with existing config: only update detected.json (re-scan), preserve user files
+  if (force && alreadyExists) {
+    // Ensure directory structure exists (in case user deleted subdirs)
+    mkdirSync(join(flowDir, 'workflows'), { recursive: true });
+    mkdirSync(join(flowDir, 'context', 'L1-project'), { recursive: true });
+    mkdirSync(join(flowDir, 'context', 'L2-reference'), { recursive: true });
+
+    // Only update detected.json
+    writeFileSync(
+      join(flowDir, 'detected.json'),
+      JSON.stringify(detected, null, 2),
+      'utf-8',
+    );
+
+    // Update project registry
+    registerProject({
+      path: absDir,
+      name: detected.name,
+      preset: detected.preset,
+      registered_at: new Date().toISOString(),
+      repo_url: detected.repo_url,
+    });
+
+    console.log(`Re-scanned project and updated ${join(flowDir, 'detected.json')}`);
+    console.log('');
+    console.log('Preserved (not overwritten):');
+    console.log('  .icex-flow/routes.json');
+    console.log('  .icex-flow/context.manifest.json');
+    console.log('  .icex-flow/workflows/');
+    console.log('');
+    console.log('Use --reset instead of --force to overwrite all config files.');
+    return;
+  }
+
+  // Fresh init or --reset: generate everything from templates
   const preset = generatePreset(detected);
 
-  // 4. Create directory structure
+  // Create directory structure
   mkdirSync(join(flowDir, 'workflows'), { recursive: true });
   mkdirSync(join(flowDir, 'context', 'L1-project'), { recursive: true });
   mkdirSync(join(flowDir, 'context', 'L2-reference'), { recursive: true });
 
-  // 5. Write routes.json
+  // Write routes.json
   writeFileSync(
     join(flowDir, 'routes.json'),
     JSON.stringify(preset.routes, null, 2),
     'utf-8',
   );
 
-  // 6. Write context.manifest.json
+  // Write context.manifest.json
   writeFileSync(
     join(flowDir, 'context.manifest.json'),
     JSON.stringify(preset.context_manifest, null, 2),
     'utf-8',
   );
 
-  // 7. Write workflow files
+  // Write workflow files
   for (const wf of preset.workflows) {
     const filename = `${wf.name}.flow.json`;
     writeFileSync(
@@ -98,14 +139,14 @@ export function cmdInit(args: string[]): void {
     );
   }
 
-  // 8. Write a detection summary for reference
+  // Write detection summary
   writeFileSync(
     join(flowDir, 'detected.json'),
     JSON.stringify(detected, null, 2),
     'utf-8',
   );
 
-  // 9. Register project in global registry
+  // Register project in global registry
   registerProject({
     path: absDir,
     name: detected.name,
@@ -129,7 +170,7 @@ export function cmdInit(args: string[]): void {
   console.log(`Preset: ${detected.preset}`);
   console.log(`Registered in ~/.icex-flow/projects.json`);
   console.log('');
-  // 10. Auto-generate PROJECT.md (scan remote dir if provided, write to local config)
+  // Auto-generate PROJECT.md (scan remote dir if provided, write to local config)
   console.log('');
   runGenerate(absDir, scanDir ?? undefined);
 

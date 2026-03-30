@@ -37,7 +37,7 @@ icex-flow v${VERSION} — Deterministic agent workflow orchestration
 Usage: icex-flow <command> [options]
 
 Commands:
-  init [--path <dir>] [--force]   Initialize .icex-flow/ with smart auto-detection
+  init [--path <dir>] [--force]   Initialize .icex-flow/ (--force re-scans only, --reset overwrites all)
   generate [--path <dir>]         Auto-generate PROJECT.md from scanned project
   learn "<knowledge>"             Store project knowledge (env, safety, arch)
   learn --list                    List all stored knowledge
