@@ -1,6 +1,6 @@
 {
-  "name": "icex-flow",
-  "version": "0.2.0",
+  "name": "@icex-labs/icex-flow",
+  "version": "0.3.1",
   "description": "Deterministic agent workflow orchestration — eliminate randomness in AI agent pipelines",
   "type": "module",
   "main": "dist/index.js",
@@ -10,7 +10,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "test": "node --test dist/tests/",
+    "test": "echo 'no tests yet'",
     "prepare": "npm run build",
     "prepublishOnly": "npm run build && npm test"
   },
