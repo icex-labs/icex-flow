@@ -66,6 +66,18 @@ icex-flow init --path /path/to/remote/project
 icex-flow generate --path /path/to/remote/project
 ```
 
+**Re-initialization:**
+
+```bash
+# Re-scan project without overwriting customized routes/workflows/manifest
+icex-flow init --force --path /path/to/project
+
+# Full reset — overwrite everything with fresh templates
+icex-flow init --reset
+```
+
+`--force` updates only the auto-detected project info (`detected.json`) and project registry — your hand-tuned `routes.json`, `context.manifest.json`, and workflow files are preserved. Use `--reset` only when you want to start from scratch.
+
 `init` auto-detects your project:
 
 - **Language** — Python, Node.js, Go, Java, Rust, etc.
@@ -127,7 +139,7 @@ icex-flow verify --command "gh pr view 42 --json state -q '.state'" --expect "ME
 
 | Command | Description |
 |---------|-------------|
-| `icex-flow init [--path <dir>]` | Auto-detect project + scaffold `.icex-flow/` |
+| `icex-flow init [--path <dir>] [--force\|--reset]` | Auto-detect project + scaffold `.icex-flow/` |
 | `icex-flow validate [dir]` | Validate all JSON definitions |
 | `icex-flow route "<task>"` | Route task → agent + workflow |
 | `icex-flow plan <workflow> [--from-step <n\|id>]` | Generate deterministic execution plan (optionally resume from step) |
@@ -330,6 +342,9 @@ Agents lose context on restart. `icex-flow learn` gives them persistent memory:
 icex-flow learn "k3d is dev environment, U9 is production" --category environment
 icex-flow learn "quant-bridge connects IBKR TWS via socat relay" --category architecture
 icex-flow learn "never kubectl apply on production without approval" --category safety
+
+# Associate knowledge with a specific registered project
+icex-flow learn "uses pytest for testing" --project netralis-quant --category workflow
 
 # List what the project knows
 icex-flow learn --list
