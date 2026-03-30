@@ -6,6 +6,8 @@ import { cmdPlan } from './commands/plan.js';
 import { cmdList } from './commands/list.js';
 import { cmdVerify } from './commands/verify.js';
 import { cmdProjects } from './commands/projects.js';
+import { cmdGenerate } from './commands/generate.js';
+import { cmdLearn } from './commands/learn.js';
 
 const VERSION = '0.2.0';
 
@@ -16,6 +18,10 @@ Usage: icex-flow <command> [options]
 
 Commands:
   init [dir] [--force]            Initialize .icex-flow/ with smart auto-detection
+  generate [--dir .]              Auto-generate PROJECT.md from scanned project
+  learn "<knowledge>"             Store project knowledge (env, safety, arch)
+  learn --list                    List all stored knowledge
+  learn --remove <id>             Remove a knowledge entry
   validate [dir] [--global]       Validate all workflow definitions
   route "<description>" [--labels] Route a task to agent + workflow
   context [workflow] [--step]     Assemble context from manifest
@@ -56,6 +62,10 @@ export function main(args: string[]): void {
   switch (command) {
     case 'init':
       return cmdInit(rest);
+    case 'generate':
+      return cmdGenerate(rest);
+    case 'learn':
+      return cmdLearn(rest);
     case 'validate':
       return cmdValidate(rest);
     case 'route':

@@ -4,6 +4,7 @@ import { parseFlags } from '../utils.js';
 import { detectProject } from '../engine/detect.js';
 import { generatePreset } from '../presets/index.js';
 import { ensureGlobalDir, registerProject } from '../engine/config.js';
+import { runGenerate } from './generate.js';
 
 export function cmdInit(args: string[]): void {
   const { positional, flags } = parseFlags(args);
@@ -118,9 +119,15 @@ export function cmdInit(args: string[]): void {
   console.log(`Preset: ${detected.preset}`);
   console.log(`Registered in ~/.icex-flow/projects.json`);
   console.log('');
+  // 10. Auto-generate PROJECT.md
+  console.log('');
+  runGenerate(absDir);
+
+  console.log('');
   console.log('Next steps:');
   console.log('  1. Review and customize .icex-flow/routes.json');
-  console.log('  2. Add .md files to context/L1-project/ and context/L2-reference/');
-  console.log('  3. Customize workflows in .icex-flow/workflows/');
-  console.log('  4. Run: icex-flow validate');
+  console.log('  2. Review generated PROJECT.md in context/L1-project/');
+  console.log('  3. Add knowledge: icex-flow learn "your project fact"');
+  console.log('  4. Customize workflows in .icex-flow/workflows/');
+  console.log('  5. Run: icex-flow validate');
 }

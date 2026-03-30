@@ -4,6 +4,8 @@ export { assembleContext, listContextFiles } from './engine/context.js';
 export { planWorkflow, formatPlan } from './engine/planner.js';
 export { verifyStep } from './engine/verifier.js';
 export { detectProject } from './engine/detect.js';
+export { discoverEnvironments } from './engine/environment.js';
+export { extractArchitecture } from './engine/architecture.js';
 export { generatePreset } from './presets/index.js';
 export {
   ensureGlobalDir,
@@ -18,6 +20,22 @@ export {
 
 // OpenClaw adapter
 export { handleTask, getChannelMode, shouldUseIcexFlow, routeViaCLI, planViaCLI } from './adapters/index.js';
+
+export type {
+  DiscoveredEnvironment,
+  EnvironmentDiscoveryResult,
+} from './engine/environment.js';
+
+export type {
+  DiscoveredService,
+  ArchitectureResult,
+} from './engine/architecture.js';
+
+export type {
+  KnowledgeCategory,
+  KnowledgeEntry,
+  KnowledgeStore,
+} from './commands/learn.js';
 
 export type {
   WorkflowDefinition,
